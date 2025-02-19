@@ -14,8 +14,8 @@ RUN apt-get update && \
     apt-get install -y curl zip cron && \
     rm -rf /var/lib/apt/lists/*
 
-# Create backup script
-RUN echo '#!/bin/bash\n' \
+# Create the backup script
+RUN echo '#!/bin/sh\n' \
     'BACKUP_NAME="backup_$(date +%Y%m%d_%H%M%S).zip"\n' \
     'BACKUP_PATH="/tmp/$BACKUP_NAME"\n' \
     'echo "Creating backup of $BACKUP_DIR..."\n' \
@@ -38,22 +38,22 @@ RUN echo '#!/bin/bash\n' \
     'echo "Backup and upload process completed."\n' \
     > /usr/local/bin/backup_and_upload.sh
 
-# Make the script executable
+# Make the backup script executable
 RUN chmod +x /usr/local/bin/backup_and_upload.sh
 
-# Create entrypoint script to dynamically set cron job
-RUN echo '#!/bin/bash\n' \
-    'echo "Configuring backup cron job at $BACKUP_TIME..." \n' \
-    'CRON_TIME=$(echo $BACKUP_TIME | awk -F: \'{print $2, $1}\') \n' \
-    'echo "$CRON_TIME * * * root /usr/local/bin/backup_and_upload.sh" > /etc/cron.d/backup_cron \n' \
-    'chmod 0644 /etc/cron.d/backup_cron \n' \
-    'crontab /etc/cron.d/backup_cron \n' \
+RUN echo '#!/bin/sh\n' \
+    'echo "Configuring backup cron job at $BACKUP_TIME..."\n' \
+    'HOUR=$(echo $BACKUP_TIME | cut -d: -f1)\n' \
+    'MINUTE=$(echo $BACKUP_TIME | cut -d: -f2)\n' \
+    'echo "$MINUTE $HOUR * * * root /usr/local/bin/backup_and_upload.sh" > /etc/cron.d/backup_cron\n' \
+    'chmod 0644 /etc/cron.d/backup_cron\n' \
+    'crontab /etc/cron.d/backup_cron\n' \
     'echo "Starting cron..." \n' \
-    'cron -f' \
+    'cron -f\n' \
     > /usr/local/bin/start_cron.sh
 
-# Make the entrypoint script executable
+# Make the cron job script executable
 RUN chmod +x /usr/local/bin/start_cron.sh
 
-# Use the custom entrypoint script
-CMD ["/usr/local/bin/start_cron.sh"]
+# Set the entrypoint to start cron
+ENTRYPOINT ["/usr/local/bin/start_cron.sh"]
