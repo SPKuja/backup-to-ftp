@@ -48,8 +48,8 @@ RUN echo '#!/bin/sh\n' \
     'echo "$MINUTE $HOUR * * * root /usr/local/bin/backup_and_upload.sh" > /etc/cron.d/backup_cron\n' \
     'chmod 0644 /etc/cron.d/backup_cron\n' \
     'crontab /etc/cron.d/backup_cron\n' \
-    'echo "Starting cron..." \n' \
-    'cron -f\n' \
+    'echo "Cron job set up, starting cron..." \n' \
+    'cron && tail -f /dev/null' \
     > /usr/local/bin/start_cron.sh
 
 # Make the cron job script executable
