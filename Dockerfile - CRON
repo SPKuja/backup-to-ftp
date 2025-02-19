@@ -7,7 +7,7 @@ ENV BACKUP_DIR="/data/backup" \
     FTP_USER="ftpuser" \
     FTP_PASS="ftppassword" \
     FTP_DIR="/" \
-    BACKUP_TIME="02:00"  # Default backup time is 2 AM
+    BACKUP_TIME="02:00"
 
 # Install required packages
 RUN apt-get update && \
