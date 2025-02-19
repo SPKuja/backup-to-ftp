@@ -41,7 +41,7 @@ RUN echo '#!/bin/sh\n' \
 # Make the backup script executable
 RUN chmod +x /usr/local/bin/backup_and_upload.sh
 
-RUN echo '#!/bin/sh\n' \
+RUN echo '#!/bin/bash\n' \
     'echo "Configuring backup cron job at $BACKUP_TIME..."\n' \
     'HOUR=$(echo $BACKUP_TIME | cut -d: -f1)\n' \
     'MINUTE=$(echo $BACKUP_TIME | cut -d: -f2)\n' \
