@@ -1,5 +1,5 @@
 # backup-to-ftp
-Simple docker container to backup a directory to FTP as a zip file. Born out of the requirement to backup a self-hosted Minecraft world to an external server. 
+A lightweight Docker container that zips a mounted directory and uploads it to FTP once per day, with restart-safe scheduling and persistent logging. Born out of the requirement to back up a self-hosted Minecraft world to an external server. 
 
 Run with
 
