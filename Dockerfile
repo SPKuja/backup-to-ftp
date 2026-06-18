@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM ubuntu:24.04
 
 ENV BACKUP_DIR="/data/backup" \
@@ -20,7 +22,7 @@ RUN apt-get update && \
       bash ca-certificates curl zip tzdata util-linux openssh-client && \
     rm -rf /var/lib/apt/lists/*
 
-RUN cat > /usr/local/bin/backup_and_upload.sh <<'EOF'
+COPY <<'EOF' /usr/local/bin/backup_and_upload.sh
 #!/usr/bin/env bash
 set -Euo pipefail
 
@@ -79,8 +81,13 @@ if [[ ! "$BACKUP_TIME" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]]; then
   exit 1
 fi
 
-today() { date +%F; }
-now_epoch() { date +%s; }
+today() {
+  date +%F
+}
+
+now_epoch() {
+  date +%s
+}
 
 today_backup_epoch() {
   date -d "$(today) $BACKUP_TIME:00" +%s
@@ -92,17 +99,6 @@ get_last_run() {
 
 set_last_run() {
   printf '%s\n' "$1" > "$LAST_RUN_FILE"
-}
-
-next_run_epoch() {
-  local now target
-  now="$(now_epoch)"
-  target="$(today_backup_epoch)"
-  if (( now <= target )); then
-    echo "$target"
-  else
-    date -d "tomorrow $BACKUP_TIME:00" +%s
-  fi
 }
 
 normalise_remote_dir() {
@@ -185,8 +181,12 @@ do_backup_and_upload() {
   prepare_sftp_security
 
   log "Creating zip from $BACKUP_DIR -> $backup_path"
-  # Zip the contents from inside the directory.
-  ( cd "$BACKUP_DIR" && zip -r "$backup_path" . ) >/dev/null
+
+  if ! ( cd "$BACKUP_DIR" && zip -r "$backup_path" . ) >/dev/null; then
+    log "ERROR: Failed to create zip from $BACKUP_DIR"
+    rm -f "$backup_path"
+    return 1
+  fi
 
   size="$(du -h "$backup_path" | awk '{print $1}')"
   log "Zip created: $backup_path ($size)"
@@ -223,22 +223,26 @@ do_backup_and_upload() {
     fi
   fi
 
-  curl "${curl_args[@]}" "$upload_url"
+  if ! curl "${curl_args[@]}" "$upload_url"; then
+    log "ERROR: Upload failed"
+    rm -f "$backup_path"
+    return 1
+  fi
 
   rm -f "$backup_path"
   log "Backup completed successfully"
   return 0
 }
 
-# Acquire lock WITHOUT exiting. This prevents restart loops.
 exec 9>"$LOCK_FILE"
+
 until flock -n 9; do
   log "Lock busy or unavailable; waiting 10s..."
   sleep 10
 done
+
 log "Lock acquired."
 
-# Main loop with heartbeat every 60s.
 while true; do
   last="$(get_last_run)"
   tdy="$(today)"
